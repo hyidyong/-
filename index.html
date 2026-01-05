@@ -123,7 +123,8 @@
       <button id="showBtn" class="secondary" disabled>Show Answer</button>
       <button id="restartBtn" class="secondary" disabled>Restart 30s</button>
       <button id="shuffleBtn" class="secondary" disabled>Shuffle</button>
-    </div>
+    </div><button id="fixBtn" class="secondary" disabled>Fix</button>
+<button id="skipBtn" class="secondary" disabled>Wrong/Skip</button>
   </div>
 
   <script src="questions.js"></script>
@@ -134,6 +135,26 @@
     let order = [];
     let ptr = 0;
     let current = null;
+    // --- user fixes (local on this iPhone) ---
+const OVERRIDES_KEY = "doVerbOverridesV1";
+const SKIP_KEY = "doVerbSkipV1";
+
+let overrides = JSON.parse(localStorage.getItem(OVERRIDES_KEY) || "{}");
+let skipped = new Set(JSON.parse(localStorage.getItem(SKIP_KEY) || "[]"));
+
+let currentIdx = null;
+
+function getAnswer(idx) {
+  return (overrides[idx] ?? QA[idx].en);
+}
+
+function saveOverrides() {
+  localStorage.setItem(OVERRIDES_KEY, JSON.stringify(overrides));
+}
+
+function saveSkipped() {
+  localStorage.setItem(SKIP_KEY, JSON.stringify([...skipped]));
+}
 
     let left = TOTAL_SECONDS;
     let timerId = null;
@@ -150,15 +171,17 @@
     const $showBtn = document.getElementById("showBtn");
     const $restartBtn = document.getElementById("restartBtn");
     const $shuffleBtn = document.getElementById("shuffleBtn");
+    const $fixBtn = document.getElementById("fixBtn");
+const $skipBtn = document.getElementById("skipBtn");
 
-    function shuffleOrder() {
-      order = Array.from({ length: QA.length }, (_, i) => i);
-      for (let i = order.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [order[i], order[j]] = [order[j], order[i]];
-      }
-      ptr = 0;
-    }
+function shuffleOrder() {
+  order = Array.from({ length: QA.length }, (_, i) => i).filter(i => !skipped.has(i));
+  for (let i = order.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [order[i], order[j]] = [order[j], order[i]];
+  }
+  ptr = 0;
+}
 
     function stopTimer() {
       if (timerId) clearInterval(timerId);
@@ -195,7 +218,7 @@
       const hidden = ($a.style.display === "none");
       $a.style.display = hidden ? "block" : "none";
       $showBtn.textContent = hidden ? "Hide Answer" : "Show Answer";
-      if (hidden) $a.textContent = "✅ Answer: " + current.en;
+      if (hidden) $a.textContent = "✅ Answer: " + getAnswer(currentIdx);
     }
 
     function loadNext() {
@@ -206,6 +229,7 @@
       if (!order.length || ptr >= order.length) shuffleOrder();
 
       const idx = order[ptr++];
+      currentIdx = idx;
       current = QA[idx];
 
       $q.textContent = current.ko;
@@ -227,6 +251,9 @@
       $showBtn.disabled = !on;
       $restartBtn.disabled = !on;
       $shuffleBtn.disabled = !on;
+      
+      $fixBtn.disabled = !on;
+$skipBtn.disabled = !on;
     }
 
     $startBtn.addEventListener("click", () => {
@@ -243,6 +270,26 @@
     $showBtn.addEventListener("click", () => showAnswer(false));
     $restartBtn.addEventListener("click", startTimer);
     $shuffleBtn.addEventListener("click", () => { shuffleOrder(); loadNext(); });
+
+$fixBtn.addEventListener("click", () => {
+  if (currentIdx == null) return;
+  const now = getAnswer(currentIdx);
+  const edited = prompt("정답(영어) 수정", now);
+  if (edited !== null) {
+    overrides[currentIdx] = edited.trim();
+    saveOverrides();
+    $a.style.display = "block";
+    $a.textContent = "✅ Answer: " + getAnswer(currentIdx);
+    $toggleAnswerBtn.textContent = "Hide Answer";
+  }
+});
+
+$skipBtn.addEventListener("click", () => {
+  if (currentIdx == null) return;
+  skipped.add(currentIdx);
+  saveSkipped();
+  loadNext();
+});
 
     window.addEventListener("beforeunload", stopTimer);
   </script>
