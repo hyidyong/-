@@ -299,17 +299,21 @@ $skipBtn.disabled = !on;
     }
 
 $startBtn.addEventListener("click", async () => {
-  await loadCorrections();
-  // 기존 내용 그대로...
+  try {
+    await loadCorrections();
+  } catch (e) {
+    alert("corrections.json이 비었거나 형식이 이상해서 무시하고 진행할게요. corrections.json을 {} 로 해주세요.");
+  }
+
+  if (!QA || !QA.length) {
+    alert("questions.js가 비었거나 로딩이 안 됐어요.");
+    return;
+  }
+
+  shuffleOrder();
+  setTrainingUI(true);
+  loadNext();
 });
-      if (!QA || !QA.length) {
-        alert("questions.js가 비어있어요.");
-        return;
-      }
-      shuffleOrder();
-      setTrainingUI(true);
-      loadNext();
-    });
 
     $nextBtn.addEventListener("click", loadNext);
     $showBtn.addEventListener("click", () => showAnswer(false));
