@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Do Verbs 스피치 트레이너 (30s)</title>
+
+  <style>
+    body {
+      font-family: system-ui, -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+      background: #f6f6f6;
+      margin: 0;
+      padding: 24px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .wrap {
+      width: min(920px, 100%);
+      background: #fff;
+      border-radius: 14px;
+      padding: 22px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+    }
+
+    #question, #start_page {
+      color: Black;
+      font-size: 40px; /* 질문 글자 크기 */
+      margin-bottom: 10px; /* 각 요소 아래 여백 추가 */
+      line-height: 1.25;
+      word-break: keep-all;
+    }
+
+    #timer {
+      color: Black;
+      font-size: 40px; /* 질문과 타이머의 글자 크기를 조정합니다 */
+      margin-bottom: 10px; /* 각 요소 아래 여백 추가 */
+    }
+
+    #meta {
+      font-size: 14px;
+      opacity: 0.75;
+      margin-bottom: 12px;
+    }
+
+    #answer {
+      margin-top: 10px;
+      padding: 14px;
+      border-radius: 12px;
+      background: #f2f2f2;
+      font-size: 22px;
+      line-height: 1.35;
+      word-break: keep-all;
+      display: none;
+    }
+
+    .btns {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 14px;
+    }
+
+    button {
+      padding: 12px 22px;
+      font-size: 18px;
+      border: 0;
+      border-radius: 10px;
+      cursor: pointer;
+      background: #111;
+      color: #fff;
+    }
+
+    button.secondary {
+      background: #e6e6e6;
+      color: #111;
+    }
+
+    button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    /* 모바일 화면에 대한 스타일 */
+    @media screen and (max-width: 768px) {
+      button {
+        padding: 10px 20px; /* 모바일에서 버튼의 패딩을 조정 */
+        font-size: 16px; /* 모바일에서 글자 크기를 조정 */
+      }
+
+      #question, #start_page {
+        font-size: 25px; /* 모바일에서 질문의 글자 크기를 조정 */
+      }
+
+      #timer {
+        font-size: 20px; /* 모바일에서 타이머의 글자 크기를 조정 */
+      }
+
+      #answer {
+        font-size: 18px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div id="start_page">
+      Start를 누르면 한글 문장이 나와. 30초 안에 영어로 말하면 돼.
+    </div>
+
+    <div id="meta" style="display:none;">
+      <span id="count"></span>
+    </div>
+
+    <div id="question" style="display:none;"></div>
+    <div id="timer" style="display:none;"></div>
+    <div id="answer"></div>
+
+    <div class="btns">
+      <button id="startBtn">Start</button>
+      <button id="nextBtn" class="secondary" disabled>Next</button>
+      <button id="showBtn" class="secondary" disabled>Show Answer</button>
+      <button id="restartBtn" class="secondary" disabled>Restart 30s</button>
+      <button id="shuffleBtn" class="secondary" disabled>Shuffle</button>
+    </div>
+  </div>
+
+  <script src="questions.js"></script>
+
+  <script>
+    const TOTAL_SECONDS = 30;
+
+    let order = [];
+    let ptr = 0;
+    let current = null;
+
+    let left = TOTAL_SECONDS;
+    let timerId = null;
+
+    const $startPage = document.getElementById("start_page");
+    const $meta = document.getElementById("meta");
+    const $count = document.getElementById("count");
+    const $q = document.getElementById("question");
+    const $t = document.getElementById("timer");
+    const $a = document.getElementById("answer");
+
+    const $startBtn = document.getElementById("startBtn");
+    const $nextBtn = document.getElementById("nextBtn");
+    const $showBtn = document.getElementById("showBtn");
+    const $restartBtn = document.getElementById("restartBtn");
+    const $shuffleBtn = document.getElementById("shuffleBtn");
+
+    function shuffleOrder() {
+      order = Array.from({ length: QA.length }, (_, i) => i);
+      for (let i = order.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [order[i], order[j]] = [order[j], order[i]];
+      }
+      ptr = 0;
+    }
+
+    function stopTimer() {
+      if (timerId) clearInterval(timerId);
+      timerId = null;
+    }
+
+    function renderTimer() {
+      $t.textContent = `⏳ ${left}s`;
+    }
+
+    function startTimer() {
+      stopTimer();
+      left = TOTAL_SECONDS;
+      renderTimer();
+      timerId = setInterval(() => {
+        left -= 1;
+        renderTimer();
+        if (left <= 0) {
+          stopTimer();
+          // 시간 끝나면 정답 자동 표시
+          showAnswer(true);
+        }
+      }, 1000);
+    }
+
+    function showAnswer(forceShow = false) {
+      if (!current) return;
+      if (forceShow) {
+        $a.style.display = "block";
+        $a.textContent = "✅ Answer: " + current.en;
+        $showBtn.textContent = "Hide Answer";
+        return;
+      }
+      const hidden = ($a.style.display === "none");
+      $a.style.display = hidden ? "block" : "none";
+      $showBtn.textContent = hidden ? "Hide Answer" : "Show Answer";
+      if (hidden) $a.textContent = "✅ Answer: " + current.en;
+    }
+
+    function loadNext() {
+      if (!QA || !QA.length) {
+        alert("questions.js에 문제가 없어요.");
+        return;
+      }
+      if (!order.length || ptr >= order.length) shuffleOrder();
+
+      const idx = order[ptr++];
+      current = QA[idx];
+
+      $q.textContent = current.ko;
+      $a.style.display = "none";
+      $showBtn.textContent = "Show Answer";
+
+      $count.textContent = `문제: ${ptr}/${order.length} (총 ${QA.length}개)`;
+
+      startTimer();
+    }
+
+    function setTrainingUI(on) {
+      $startPage.style.display = on ? "none" : "block";
+      $meta.style.display = on ? "block" : "none";
+      $q.style.display = on ? "block" : "none";
+      $t.style.display = on ? "block" : "none";
+
+      $nextBtn.disabled = !on;
+      $showBtn.disabled = !on;
+      $restartBtn.disabled = !on;
+      $shuffleBtn.disabled = !on;
+    }
+
+    $startBtn.addEventListener("click", () => {
+      if (!QA || !QA.length) {
+        alert("questions.js가 비어있어요.");
+        return;
+      }
+      shuffleOrder();
+      setTrainingUI(true);
+      loadNext();
+    });
+
+    $nextBtn.addEventListener("click", loadNext);
+    $showBtn.addEventListener("click", () => showAnswer(false));
+    $restartBtn.addEventListener("click", startTimer);
+    $shuffleBtn.addEventListener("click", () => { shuffleOrder(); loadNext(); });
+
+    window.addEventListener("beforeunload", stopTimer);
+  </script>
+</body>
+</html>
