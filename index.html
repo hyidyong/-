@@ -148,6 +148,18 @@
     let order = [];
     let ptr = 0;
     let current = null;
+    // --- shared corrections (for everyone) ---
+let corrections = {};
+
+async function loadCorrections() {
+  try {
+    const res = await fetch("corrections.json?v=" + Date.now(), { cache: "no-store" });
+    if (!res.ok) return;           // 파일 없거나 오류면 그냥 무시
+    corrections = await res.json(); // {"123":"fixed answer", ...}
+  } catch (e) {
+    // 네트워크/파싱 오류면 무시
+  }
+}
     // --- user fixes (local on this iPhone) ---
 const OVERRIDES_KEY = "doVerbOverridesV1";
 const SKIP_KEY = "doVerbSkipV1";
@@ -158,7 +170,9 @@ let skipped = new Set(JSON.parse(localStorage.getItem(SKIP_KEY) || "[]"));
 let currentIdx = null;
 
 function getAnswer(idx) {
-  return (overrides[idx] ?? QA[idx].en);
+  const k = String(idx);
+  if (corrections && corrections[k]) return corrections[k]; // ✅ 공용 수정본 우선
+  return (overrides[idx] ?? QA[idx].en);                    // 그 다음 내 폰 Fix, 마지막 원본
 }
 
 function saveOverrides() {
@@ -269,7 +283,10 @@ function shuffleOrder() {
 $skipBtn.disabled = !on;
     }
 
-    $startBtn.addEventListener("click", () => {
+$startBtn.addEventListener("click", async () => {
+  await loadCorrections();
+  // 기존 내용 그대로...
+});
       if (!QA || !QA.length) {
         alert("questions.js가 비어있어요.");
         return;
