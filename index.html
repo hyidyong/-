@@ -36,7 +36,21 @@
       font-size: 40px; /* 질문과 타이머의 글자 크기를 조정합니다 */
       margin-bottom: 10px; /* 각 요소 아래 여백 추가 */
     }
+/* 버튼들 간격/배치 */
+.btns{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+}
 
+.btns button{
+  flex: 1 1 calc(50% - 10px); /* 두 개씩 줄맞춤 */
+}
+
+#startBtn{
+  flex-basis: 100%; /* Start는 한 줄 크게 */
+}
     #meta {
       font-size: 14px;
       opacity: 0.75;
@@ -136,7 +150,8 @@
       <button id="showBtn" class="secondary" disabled>Show Answer</button>
       <button id="restartBtn" class="secondary" disabled>Restart 30s</button>
       <button id="shuffleBtn" class="secondary" disabled>Shuffle</button>
-    </div><button id="fixBtn" class="secondary" disabled>Fix</button>
+    
+    <button id="fixBtn" class="secondary" disabled>Fix</button>
 <button id="skipBtn" class="secondary" disabled>Wrong/Skip</button>
   </div>
 
@@ -263,7 +278,7 @@ function shuffleOrder() {
       $a.style.display = "none";
       $showBtn.textContent = "Show Answer";
 
-      $count.textContent = `문제: ${ptr}/${order.length} (총 ${QA.length}개)`;
+$count.textContent = `문제: ${ptr}/${order.length} (총 ${order.length}개)\nID: ${currentIdx}`;
 
       startTimer();
     }
