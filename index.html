@@ -70,7 +70,20 @@
       background: #111;
       color: #fff;
     }
+/* 버튼들 자동 줄바꿈 + 간격 */
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+}
 
+/* 버튼들 크기/터치감 */
+.controls button {
+  min-width: 130px;
+  padding: 12px 16px;
+  border-radius: 12px;
+}
     button.secondary {
       background: #e6e6e6;
       color: #111;
